@@ -2,8 +2,12 @@ name: Repo Monitor
 
 on:
   schedule:
-    - cron: '0 * * * *' # 每小时运行一次
-  workflow_dispatch:      # 允许手动触发
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+# 必须添加写权限，否则 git push 会失败
+permissions:
+  contents: write
 
 jobs:
   check:
@@ -11,6 +15,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # 保证可以 push
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -20,11 +26,15 @@ jobs:
       - name: Install dependencies
         run: pip install requests
 
-      # 读取上一次保存在仓库 Actions 变量或文件中的 SHA
       - name: Get cached SHA
         id: cache-sha
         run: |
-          echo "LAST_SHA=$(cat last_sha.txt 2>/dev/null || echo '')" >> $GITHUB_ENV
+          # 确保文件不存在时不会报错，并存入 ENV
+          if [ -f last_sha.txt ]; then
+            echo "LAST_SHA=$(cat last_sha.txt)" >> $GITHUB_ENV
+          else
+            echo "LAST_SHA=none" >> $GITHUB_ENV
+          fi
 
       - name: Run Monitor
         id: monitor
@@ -34,9 +44,9 @@ jobs:
           DINGTALK_SECRET: ${{ secrets.DINGTALK_SECRET }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
         run: |
-          python monitor.py >> $GITHUB_OUTPUT
+          # 运行脚本，脚本内部会负责写入 $GITHUB_OUTPUT
+          python monitor.py
 
-      # 如果有更新，保存新的 SHA 并提交到仓库（或者发通知）
       - name: Update SHA record
         if: steps.monitor.outputs.NEW_COMMIT_DETECTED == 'true'
         run: |
@@ -44,5 +54,5 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add last_sha.txt
-          git commit -m "Update last observed commit SHA"
+          git commit -m "Update last observed commit SHA: ${{ steps.monitor.outputs.COMMIT_SHA }}"
           git push
