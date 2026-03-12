@@ -36,7 +36,7 @@ def send_dingtalk_msg(content):
     print(f"[+] DingTalk Response: {r.text}")
 
 def get_latest_commit():
-    api_url = f"https://api.github.com{REPO}/commits?per_page=1"
+    api_url = f"https://api.github.com/{REPO}/commits?per_page=1"
     # 推荐传入 GITHUB_TOKEN 避免 API 频率限制
     headers = {"Authorization": f"token {os.getenv('GITHUB_TOKEN')}"} if os.getenv('GITHUB_TOKEN') else {}
     resp = requests.get(api_url, headers=headers)
