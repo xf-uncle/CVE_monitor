@@ -55,7 +55,7 @@ def get_latest_commit():
 if __name__ == "__main__":
     last_sha = os.getenv("LAST_SHA", "").strip()
     latest = get_latest_commit()
-    
+    print(f"DEBUG: last_sha='{last_sha}', latest_sha='{latest['sha']}'")
     if latest and latest['sha'] != last_sha:
         # 使用新的 GitHub Actions 输出语法
         with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
@@ -63,7 +63,8 @@ if __name__ == "__main__":
             f.write(f"COMMIT_SHA={latest['sha']}\n")
         
         if WEBHOOK_URL and SECRET:
-            send_dingtalk_msg(latest)
+            pass
+           # send_dingtalk_msg(latest)
     else:
         with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
             f.write(f"NEW_COMMIT_DETECTED=false\n")
