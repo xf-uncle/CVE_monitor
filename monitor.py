@@ -21,18 +21,26 @@ def get_dingtalk_url():
     sign = base64.b64encode(hmac_code).decode('utf-8')
     return f"{WEBHOOK_URL}&timestamp={timestamp}&sign={sign}"
 
-def send_dingtalk_msg(content):
-    """发送 Markdown 格式消息"""
+def send_dingtalk_msg(commit_node):
+    """发送 Markdown 格式消息，加入具体的 Commit 信息"""
+    sha = commit_node['sha'][:7]
+    message = commit_node['commit']['message'].split('\n')[0] # 只取首行
+    author = commit_node['commit']['author']['name']
+    
     url = get_dingtalk_url()
-    headers = {"Content-Type": "application/json"}
     data = {
         "msgtype": "markdown",
         "markdown": {
             "title": "Repo 更新提醒",
-            "text": f"### 🚀 Nuclei 模板仓库更新\n\n**项目:** {REPO}\n\n**详情:** [查看最新提交](https://github.com{REPO}/commits/main)\n\n> 检测时间: {time.strftime('%Y-%m-%d %H:%M:%S')}"
+            "text": (f"### 🚀 Nuclei 模板更新\n\n"
+                     f"**项目:** `{REPO}`\n\n"
+                     f"**提交内容:** {message}\n\n"
+                     f"**提交者:** {author} ({sha})\n\n"
+                     f"[查看详情](https://github.com/{REPO}/commit/{sha})\n\n"
+                     f"> 检测时间: {time.strftime('%Y-%m-%d %H:%M:%S')}")
         }
     }
-    r = requests.post(url, data=json.dumps(data), headers=headers)
+    r = requests.post(url, json=data) # requests 会自动处理 json.dumps 和 headers
     print(f"[+] DingTalk Response: {r.text}")
 
 def get_latest_commit():
