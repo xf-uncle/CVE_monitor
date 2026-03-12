@@ -8,7 +8,7 @@ import json
 import sys
 
 # 配置
-REPO = "topscoder/nuclei-wordfence-cve"
+REPO = "/topscoder/nuclei-wordfence-cve"
 WEBHOOK_URL = os.getenv("DINGTALK_WEBHOOK")
 SECRET = os.getenv("DINGTALK_SECRET")
 
