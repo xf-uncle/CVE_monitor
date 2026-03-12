@@ -46,7 +46,7 @@ def send_dingtalk_msg(latest_commit):
 
 def get_latest_commit():
     # 确保路径中包含 /repos/
-    api_url = f"https://api.github.com{REPO}/commits?per_page=1"
+    api_url = f"https://api.github.com/repos{REPO}/commits?per_page=1"
     
     headers = {
         "Accept": "application/vnd.github.v3+json"
