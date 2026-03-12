@@ -30,6 +30,9 @@ jobs:
         id: monitor
         env:
           LAST_SHA: ${{ env.LAST_SHA }}
+          DINGTALK_WEBHOOK: ${{ secrets.DINGTALK_WEBHOOK }}
+          DINGTALK_SECRET: ${{ secrets.DINGTALK_SECRET }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
         run: |
           python monitor.py >> $GITHUB_OUTPUT
 
