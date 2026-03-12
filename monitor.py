@@ -7,86 +7,88 @@ import requests
 import json
 import sys
 
-# 配置
-REPO = "/topscoder/nuclei-wordfence-cve"
+# 1. 在这里添加你想监控的所有仓库
+REPOS = [
+    "topscoder/nuclei-wordfence-cve",
+    "projectdiscovery/nuclei-templates",
+    "pwn0sec/Pwn0sec-Templates"
+]
+
 WEBHOOK_URL = os.getenv("DINGTALK_WEBHOOK")
 SECRET = os.getenv("DINGTALK_SECRET")
+SHA_FILE = "last_sha.json" # 改用 JSON 存储多个 SHA
 
 def get_dingtalk_url():
     timestamp = str(round(time.time() * 1000))
     secret_enc = SECRET.encode('utf-8')
     string_to_sign = f'{timestamp}\n{SECRET}'
-    string_to_sign_enc = string_to_sign.encode('utf-8')
-    hmac_code = hmac.new(secret_enc, string_to_sign_enc, digestmod=hashlib.sha256).digest()
+    hmac_code = hmac.new(secret_enc, string_to_sign.encode('utf-8'), digestmod=hashlib.sha256).digest()
     sign = base64.b64encode(hmac_code).decode('utf-8')
     return f"{WEBHOOK_URL}&timestamp={timestamp}&sign={sign}"
 
-def send_dingtalk_msg(latest_commit):
-    """发送包含具体 Commit 信息的 Markdown"""
+def send_dingtalk_msg(repo_name, commit_node):
     url = get_dingtalk_url()
-    sha = latest_commit['sha'][:7]
-    # 获取提交信息（取第一行避免过长）
-    msg_summary = latest_commit['commit']['message'].split('\n')[0]
-    author = latest_commit['commit']['author']['name']
+    sha = commit_node['sha'][:7]
+    msg = commit_node['commit']['message'].split('\n')[0]
+    author = commit_node['commit']['author']['name']
     
     data = {
         "msgtype": "markdown",
         "markdown": {
-            "title": "Repo 更新提醒",
-            "text": (f"### 🚀 Nuclei 模板更新\n\n"
-                     f"**项目:** `{REPO}`\n\n"
-                     f"**内容:** {msg_summary}\n\n"
+            "title": f"Repo 更新: {repo_name}",
+            "text": (f"### 🚀 模板仓库更新\n\n"
+                     f"**项目:** `{repo_name}`\n\n"
+                     f"**内容:** {msg}\n\n"
                      f"**提交者:** {author} ({sha})\n\n"
-                     f"**详情:** [点击查看提交](https://github.com{REPO}/commit/{sha})\n\n"
+                     f"**详情:** [点击查看](https://github.com{repo_name}/commit/{sha})\n\n"
                      f"> 检测时间: {time.strftime('%Y-%m-%d %H:%M:%S')}")
         }
     }
-    r = requests.post(url, json=data)
-    print(f"DingTalk Response: {r.text}", file=sys.stderr)
+    requests.post(url, json=data)
 
-def get_latest_commit():
-    # 确保路径中包含 /repos/
-    api_url = f"https://api.github.com/repos{REPO}/commits?per_page=1"
+def get_latest_commit(repo):
+    api_url = f"https://api.github.com/repos/{repo}/commits?per_page=1"
+    headers = {"Accept": "application/vnd.github.v3+json"}
+    if os.getenv('GITHUB_TOKEN'):
+        headers["Authorization"] = f"token {os.getenv('GITHUB_TOKEN')}"
     
-    headers = {
-        "Accept": "application/vnd.github.v3+json"
-    }
-    # 这里的 GITHUB_TOKEN 建议改用环境变量中的那个
-    token = os.getenv('GITHUB_TOKEN')
-    print(f'get_latest_commit - token -> {token}')
-    if token:
-        headers["Authorization"] = f"token {token}"
-        
     try:
         resp = requests.get(api_url, headers=headers)
-        # 调试用：如果报错，打印出状态码和响应内容
-        if resp.status_code != 200:
-            print(f"API Error: Status {resp.status_code}, Response: {resp.text}", file=sys.stderr)
-            return None
-            
-        data = resp.json()
-        if isinstance(data, list) and len(data) > 0:
-            return data[0]
-        else:
-            print(f"API Error: Unexpected data format: {data}", file=sys.stderr)
-            return None
-    except Exception as e:
-        print(f"Request Exception: {e}", file=sys.stderr)
+        if resp.status_code == 200:
+            data = resp.json()
+            return data[0] if data else None
+    except:
         return None
 
 if __name__ == "__main__":
-    last_sha = os.getenv("LAST_SHA", "").strip()
-    latest = get_latest_commit()
-    print(f"DEBUG: last_sha='{last_sha}', latest_sha='{latest['sha']}'")
-    if latest and latest['sha'] != last_sha:
-        # 使用新的 GitHub Actions 输出语法
-        with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
-            f.write(f"NEW_COMMIT_DETECTED=true\n")
-            f.write(f"COMMIT_SHA={latest['sha']}\n")
+    # 读取历史记录
+    history = {}
+    if os.path.exists(SHA_FILE):
+        with open(SHA_FILE, 'r') as f:
+            try: history = json.load(f)
+            except: history = {}
+
+    updated_any = False
+    
+    for repo in REPOS:
+        print(f"Checking {repo}...")
+        latest = get_latest_commit(repo)
+        if not latest: continue
         
-        if WEBHOOK_URL and SECRET:
-            pass
-           # send_dingtalk_msg(latest)
-    else:
-        with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
-            f.write(f"NEW_COMMIT_DETECTED=false\n")
+        current_sha = latest['sha']
+        old_sha = history.get(repo)
+        
+        if current_sha != old_sha:
+            print(f"New commit found for {repo}!")
+            #send_dingtalk_msg(repo, latest)
+            history[repo] = current_sha
+            updated_any = True
+        
+    # 如果有任何更新，保存并通知 GitHub Action
+    if updated_any:
+        with open(SHA_FILE, 'w') as f:
+            json.dump(history, f, indent=2)
+        
+        if 'GITHUB_OUTPUT' in os.environ:
+            with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                f.write("ANY_UPDATED=true\n")
