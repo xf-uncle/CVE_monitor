@@ -35,7 +35,7 @@ def send_dingtalk_msg(repo_name, commit_node):
                      f"**项目:** `{repo_name}`\n\n"
                      f"**内容:** {msg}\n\n"
                      f"**提交者:** {author} ({sha})\n\n"
-                     f"**详情:** [点击查看](https://github.com{repo_name}/commit/{sha})\n\n"
+                     f"**详情:** [点击查看](https://github.com/{repo_name}/commit/{sha})\n\n"
                      f"> 检测时间: {time.strftime('%Y-%m-%d %H:%M:%S')}")
         }
     }
