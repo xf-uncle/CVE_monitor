@@ -1,0 +1,45 @@
+name: Repo Monitor
+
+on:
+  schedule:
+    - cron: '0 * * * *' # 每小时运行一次
+  workflow_dispatch:      # 允许手动触发
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      # 读取上一次保存在仓库 Actions 变量或文件中的 SHA
+      - name: Get cached SHA
+        id: cache-sha
+        run: |
+          echo "LAST_SHA=$(cat last_sha.txt 2>/dev/null || echo '')" >> $GITHUB_ENV
+
+      - name: Run Monitor
+        id: monitor
+        env:
+          LAST_SHA: ${{ env.LAST_SHA }}
+        run: |
+          python monitor.py >> $GITHUB_OUTPUT
+
+      # 如果有更新，保存新的 SHA 并提交到仓库（或者发通知）
+      - name: Update SHA record
+        if: steps.monitor.outputs.NEW_COMMIT_DETECTED == 'true'
+        run: |
+          echo "${{ steps.monitor.outputs.COMMIT_SHA }}" > last_sha.txt
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add last_sha.txt
+          git commit -m "Update last observed commit SHA"
+          git push
