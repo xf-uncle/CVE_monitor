@@ -45,12 +45,34 @@ def send_dingtalk_msg(latest_commit):
     print(f"DingTalk Response: {r.text}", file=sys.stderr)
 
 def get_latest_commit():
-    api_url = f"https://api.github.com{REPO}/commits?per_page=1" # 修复了API路径
-    headers = {"Authorization": f"token {os.getenv('GITHUB_TOKEN')}"} if os.getenv('GITHUB_TOKEN') else {}
-    resp = requests.get(api_url, headers=headers)
-    if resp.status_code == 200:
-        return resp.json()[0]
-    return None
+    # 确保路径中包含 /repos/
+    api_url = f"https://api.github.com{REPO}/commits?per_page=1"
+    
+    headers = {
+        "Accept": "application/vnd.github.v3+json"
+    }
+    # 这里的 GITHUB_TOKEN 建议改用环境变量中的那个
+    token = os.getenv('GITHUB_TOKEN')
+    print(f'get_latest_commit - token -> {token}')
+    if token:
+        headers["Authorization"] = f"token {token}"
+        
+    try:
+        resp = requests.get(api_url, headers=headers)
+        # 调试用：如果报错，打印出状态码和响应内容
+        if resp.status_code != 200:
+            print(f"API Error: Status {resp.status_code}, Response: {resp.text}", file=sys.stderr)
+            return None
+            
+        data = resp.json()
+        if isinstance(data, list) and len(data) > 0:
+            return data[0]
+        else:
+            print(f"API Error: Unexpected data format: {data}", file=sys.stderr)
+            return None
+    except Exception as e:
+        print(f"Request Exception: {e}", file=sys.stderr)
+        return None
 
 if __name__ == "__main__":
     last_sha = os.getenv("LAST_SHA", "").strip()
