@@ -39,6 +39,7 @@ jobs:
       - name: Run Monitor
         id: monitor
         env:
+          MONITOR_REPOS: ${{ vars.MONITOR_REPOS }}
           DINGTALK_WEBHOOK: ${{ secrets.DINGTALK_WEBHOOK }}
           DINGTALK_SECRET: ${{ secrets.DINGTALK_SECRET }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
