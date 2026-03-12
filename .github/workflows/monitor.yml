@@ -39,20 +39,17 @@ jobs:
       - name: Run Monitor
         id: monitor
         env:
-          LAST_SHA: ${{ env.LAST_SHA }}
           DINGTALK_WEBHOOK: ${{ secrets.DINGTALK_WEBHOOK }}
           DINGTALK_SECRET: ${{ secrets.DINGTALK_SECRET }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
-        run: |
-          # 运行脚本，脚本内部会负责写入 $GITHUB_OUTPUT
-          python monitor.py
+        run: python monitor.py
 
-      - name: Update SHA record
-        if: steps.monitor.outputs.NEW_COMMIT_DETECTED == 'true'
+      - name: Update Record
+        # 只要 Python 脚本输出了 ANY_UPDATED，就执行推送
+        if: steps.monitor.outputs.ANY_UPDATED == 'true'
         run: |
-          echo "${{ steps.monitor.outputs.COMMIT_SHA }}" > last_sha.txt
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add last_sha.txt
-          git commit -m "Update last observed commit SHA: ${{ steps.monitor.outputs.COMMIT_SHA }}"
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add last_sha.json
+          git commit -m "chore: update last observed commit SHAs [skip ci]"
           git push
