@@ -7,13 +7,8 @@ import requests
 import json
 import sys
 
-# 1. 在这里添加你想监控的所有仓库
-REPOS = [
-    "topscoder/nuclei-wordfence-cve",
-    "projectdiscovery/nuclei-templates",
-    "pwn0sec/Pwn0sec-Templates"
-]
-
+repos_env = os.getenv("MONITOR_REPOS", "")
+REPOS = [r.strip() for r in repos_env.split('\n') if r.strip()]
 WEBHOOK_URL = os.getenv("DINGTALK_WEBHOOK")
 SECRET = os.getenv("DINGTALK_SECRET")
 SHA_FILE = "last_sha.json" # 改用 JSON 存储多个 SHA
