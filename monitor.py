@@ -75,7 +75,7 @@ if __name__ == "__main__":
         
         if current_sha != old_sha:
             print(f"New commit found for {repo}!")
-            #send_dingtalk_msg(repo, latest)
+            send_dingtalk_msg(repo, latest)
             history[repo] = current_sha
             updated_any = True
         
