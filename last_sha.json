@@ -1,6 +1,6 @@
 {
-  "topscoder/nuclei-wordfence-cve": "613fefcbe5ffd55dd7e7ea3faff6a4dcc15776c3",
+  "topscoder/nuclei-wordfence-cve": "e155aae750cf0e1508dce07d346dcc4d671754de",
   "projectdiscovery/nuclei-templates": "53f7d27e0add12e62db541fb58bbbd2cbe97d91f",
   "trickest/cve": "155809a1c2d69ac735a95c0b670795240c3701e2",
-  "nomi-sec/PoC-in-GitHub": "a7a16a7340d858ce835023c9fe9e6e6571fc590d"
+  "nomi-sec/PoC-in-GitHub": "d5895b697c73907a27d60cdef011188dfa986a55"
 }
